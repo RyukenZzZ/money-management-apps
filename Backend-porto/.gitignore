@@ -1,0 +1,5 @@
+node_modules
+!tmp/Readme.md
+tmp/*
+.env
+/src/generated/prisma
