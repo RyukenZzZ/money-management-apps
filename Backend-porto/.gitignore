@@ -3,3 +3,7 @@ node_modules
 tmp/*
 .env
 /src/generated/prisma
+
+/src/generated/prisma
+
+/src/generated/prisma

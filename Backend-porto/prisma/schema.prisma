@@ -1,14 +1,98 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+    output   = "../src/generated"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model accounts {
+  id           Int            @id @default(autoincrement())
+  user_id      Int?
+  account_name String?        @db.VarChar
+  account_type String?        @db.VarChar
+  balance      Decimal?       @db.Decimal
+  created_at   DateTime?      @db.Timestamp(6)
+  updated_at   DateTime?      @db.Timestamp(6)
+  users        users?         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transactions transactions[]
+}
+
+model attachments {
+  id             Int           @id @default(autoincrement())
+  transaction_id Int?
+  file_url       String?       @db.VarChar
+  file_type      String?       @db.VarChar
+  created_at     DateTime?     @db.Timestamp(6)
+  transactions   transactions? @relation(fields: [transaction_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model budgets {
+  id          Int         @id @default(autoincrement())
+  user_id     Int?
+  category_id Int?
+  amount      Decimal?    @db.Decimal
+  period      String?     @db.VarChar
+  created_at  DateTime?   @db.Timestamp(6)
+  categories  categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users       users?      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model categories {
+  id               Int            @id @default(autoincrement())
+  user_id          Int?
+  name             String?        @db.VarChar
+  category_type    String?        @db.VarChar
+  parent_id        Int?
+  created_at       DateTime?      @db.Timestamp(6)
+  budgets          budgets[]
+  categories       categories?    @relation("categoriesTocategories", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_categories categories[]   @relation("categoriesTocategories")
+  users            users?         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transactions     transactions[]
+}
+
+model email_verifications {
+  id                Int       @id @default(autoincrement())
+  user_id           Int?      @unique
+  verification_code String?   @db.VarChar
+  expired_at        DateTime? @db.Timestamp(6)
+  verified_at       DateTime? @db.Timestamp(6)
+  created_at        DateTime? @db.Timestamp(6)
+  users             users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model transactions {
+  id               Int           @id @default(autoincrement())
+  user_id          Int?
+  account_id       Int?
+  category_id      Int?
+  transaction_type String?       @db.VarChar
+  amount           Decimal?      @db.Decimal
+  description      String?
+  transaction_date DateTime?     @db.Date
+  created_at       DateTime?     @db.Timestamp(6)
+  updated_at       DateTime?     @db.Timestamp(6)
+  attachments      attachments[]
+  accounts         accounts?     @relation(fields: [account_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categories       categories?   @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?        @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id                  Int                  @id @default(autoincrement())
+  name                String?              @db.VarChar
+  email               String?              @unique @db.VarChar
+  password            String?              @db.VarChar
+  profile_picture     String?              @db.VarChar
+  is_active           Boolean?
+  created_at          DateTime?            @db.Timestamp(6)
+  updated_at          DateTime?            @db.Timestamp(6)
+  accounts            accounts[]
+  budgets             budgets[]
+  categories          categories[]
+  email_verifications email_verifications?
+  transactions        transactions[]
 }

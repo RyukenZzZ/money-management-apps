@@ -3,13 +3,11 @@ const jwt = require("jsonwebtoken");
 const {BadRequestError, Forbidden, Unauthorized} = require("../utils/request");
 const userRepository = require("../repositories/users");
 
-exports.authorization =
-    (...roles) => 
-        async (req, res, next) => {
+exports.authorization = async (req, res, next) => {
             // get token from request headers
             const authorizationHeader = req.header["authorization"];
             if(!authorizationHeader){
-                throw new Unauthorized("You Need to login in advance!");
+                throw new Unauthorized("Authentication Required !");
             }
 
             const splittedAuthHeader = authorizationHeader.split(" ");
@@ -24,12 +22,6 @@ exports.authorization =
 
             // get information of the user that has that token
             const user = await userRepository.getUserById(extractedToken.user_id);
-
-            // validate the role tha can be access to the next middleware
-            const accessValidation = roles.includes(user.role_id);
-            if(!accessValidation) {
-                throw new Forbidden("You can not access this resource!");
-            }
 
             req.user = user;
 
