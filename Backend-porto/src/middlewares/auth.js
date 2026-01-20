@@ -1,90 +1,102 @@
-const {z} = require("zod");
-const jwt = require("jsonwebtoken");
-const {BadRequestError, Forbidden, Unauthorized} = require("../utils/request");
-const userRepository = require("../repositories/users");
+import { z } from "zod";
+import jwt from "jsonwebtoken";
 
-exports.authorization = async (req, res, next) => {
-            // get token from request headers
-            const authorizationHeader = req.header["authorization"];
-            if(!authorizationHeader){
-                throw new Unauthorized("Authentication Required !");
-            }
+import {
+  BadRequestError,
+  Forbidden,
+  Unauthorized,
+} from "../utils/request.js";
 
-            const splittedAuthHeader = authorizationHeader.split(" ");
-            if (splittedAuthHeader.length <= 1) {
-                throw new Unauthorized("Token is not valid");
-            }
+import userRepository from "../repositories/users.js";
 
-            const token = splittedAuthHeader[1];
+/* ===================== AUTHORIZATION ===================== */
+export const authorization = async (req, res, next) => {
+  // get token from request headers
+  const authorizationHeader = req.headers.authorization;
 
-            // extract the token
-            const extractedToken = jwt.verify(token, process.env.JWT_SECRET);
+  if (!authorizationHeader) {
+    throw new Unauthorized("Authentication Required!");
+  }
 
-            // get information of the user that has that token
-            const user = await userRepository.getUserById(extractedToken.user_id);
+  const splittedAuthHeader = authorizationHeader.split(" ");
+  if (splittedAuthHeader.length !== 2) {
+    throw new Unauthorized("Token is not valid");
+  }
 
-            req.user = user;
+  const token = splittedAuthHeader[1];
 
-            next();
-        }
+  // verify token
+  const extractedToken = jwt.verify(token, process.env.JWT_SECRET);
 
-exports.validateRegister = (req,res,next) => {
-    //validation body schema
-    const validateBody = z.object({
-        name: z.string(),
-        email: z.string(),
-        password: z.string(),
-    });
+  // get user by token payload
+  const user = await userRepository.getUserById(extractedToken.user_id);
+  if (!user) {
+    throw new Forbidden("Access Denied");
+  }
 
-    // the file si not required
-    const validateFile = z.object({
-        profile_picture: z.object({
-            name: z.string(),
-            data: z.any(),
-        }).nullable().optional(),
-    }).nullable().optional();
+  req.user = user;
+  next();
+};
 
-    // validate
-    const resultValidateBody = validateBody.safeParse(req.body);
-    if(!resultValidateBody.success) {
-        //if validation fails, return error messages
-        throw new BadRequestError(resultValidateBody.error.errors);
-    }
+/* ===================== VALIDATE REGISTER ===================== */
+export const validateRegister = (req, res, next) => {
+  const validateBody = z.object({
+    name: z.string(),
+    email: z.string().email(),
+    password: z.string(),
+  });
 
-    const resultValidateFiles = validateFile.safeParse(req.files);
-    if (!resultValidateFiles) {
-        throw new BadRequestError(resultValidateFiles.error.errors);
-    }
-
-    next();
-}
-
-exports.validateLogin = (req,res,next) => {
-    const validateBody = z.object({
-        email:z.string(),
-        password:z.string(),
+  const validateFile = z
+    .object({
+      profile_picture: z
+        .object({
+          name: z.string(),
+          data: z.any(),
+        })
+        .optional()
+        .nullable(),
     })
+    .optional()
+    .nullable();
 
-    const resultValidateBody = validateBody.safeParse(req.body);
-    if(!resultValidateBody.success){
-        throw new BadRequestError(resultValidateBody.error.errors);
-    }
+  const resultValidateBody = validateBody.safeParse(req.body);
+  if (!resultValidateBody.success) {
+    throw new BadRequestError(resultValidateBody.error.errors);
+  }
 
+  const resultValidateFiles = validateFile.safeParse(req.files);
+  if (!resultValidateFiles.success) {
+    throw new BadRequestError(resultValidateFiles.error.errors);
+  }
 
-    next();
-}
-    
+  next();
+};
 
-exports.validateGoogleLogin = (req, res, next) => {
-    // Validation body schema
-    const validateBody = z.object({
-        access_token: z.string(),
-    });
-    // Validate
-    const resultValidateBody = validateBody.safeParse(req.body);
-    if (!resultValidateBody.success) {
-        // If validation fails, return error messages
-        throw new BadRequestError(resultValidateBody.error.errors);
-    }
-    next();
+/* ===================== VALIDATE LOGIN ===================== */
+export const validateLogin = (req, res, next) => {
+  const validateBody = z.object({
+    email: z.string().email(),
+    password: z.string(),
+  });
+
+  const resultValidateBody = validateBody.safeParse(req.body);
+  if (!resultValidateBody.success) {
+    throw new BadRequestError(resultValidateBody.error.errors);
+  }
+
+  next();
+};
+
+/* ===================== VALIDATE GOOGLE LOGIN ===================== */
+export const validateGoogleLogin = (req, res, next) => {
+  const validateBody = z.object({
+    access_token: z.string(),
+  });
+
+  const resultValidateBody = validateBody.safeParse(req.body);
+  if (!resultValidateBody.success) {
+    throw new BadRequestError(resultValidateBody.error.errors);
+  }
+
+  next();
 };

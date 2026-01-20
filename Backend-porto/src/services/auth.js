@@ -1,89 +1,149 @@
-const jwt = require("jsonwebtoken");
-const userRepository = require("../repositories/users");
-const {imageUpload} = require("../utils/image-kit");
-const { Unauthorized, BadRequestError } = require("../utils/request");
-const bcrypt = require("bcrypt");
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+import * as userRepository from "../repositories/users.js";
+import * as otpRepository from "../repositories/emailVerification.js";
+import { imageUpload } from "../utils/image-kit.js";
+import { Unauthorized, BadRequestError } from "../utils/request.js";
+import {generateOTP,hashOTP,otpExpiry} from "../utils/otp.js";
+import {sendOtpEmail} from "../utils/mailer.js";
 
 
-exports.register = async (data, file)=> {
-    // if there are any file profile picture
-    if (file?.profile_picture) {
-        data.profile_picture = await imageUpload(file.profile_picture);
+export const register = async (data, file) => {
+  // if there is profile picture
+  if (file?.profile_picture) {
+    data.profile_picture = await imageUpload(file.profile_picture);
+  }
+
+  const exixtingUser = await userRepository.getUserByEmail(data.email);
+  if(exixtingUser) {
+    throw new BadRequestError("Email is already registered");
+  };
+  
+  // create user
+  const user = await userRepository.createUser(data);
+
+  const userId = user.id;
+  const otp = generateOTP();
+  const otpHash = hashOTP(otp);
+  const expiredAt = otpExpiry(5);
+
+  const createOtp = await otpRepository.upsertOTP(userId, otpHash, expiredAt);
+  await sendOtpEmail(user.email,otp);
+
+  // generate token
+  const token = createToken(user);
+
+  // remove password before returning response
+  delete user.password;
+
+  return {
+    user,
+    token,
+    createOtp,
+  };
+};
+
+export const login = async (email, password) => {
+  // Get user by email
+  const user = await userRepository.getUserByEmail(email);
+  if (!user) {
+    throw new Unauthorized("Email is Not Found !!!");
+  }
+
+  // Check password
+  const isCorrectPassword = await bcrypt.compare(password, user.password);
+  if (!isCorrectPassword) {
+    throw new BadRequestError("Incorrect Password");
+  }
+
+  // generate token
+  const token = createToken(user);
+
+  // remove password before returning response
+  delete user.password;
+
+  return {
+    user,
+    token,
+  };
+};
+
+export const googleLogin = async (accessToken) => {
+  // get information from google
+  const { email, name, picture } =
+    await userRepository.googleLogin(accessToken);
+
+  // check if user already exists
+  let user = await userRepository.getUserByEmail(email);
+  if (!user) {
+    user = await userRepository.createUser({
+      email,
+      name,
+      profile_picture: picture,
+      password: "",
+    });
+  }
+
+  // create token
+  const token = createToken(user);
+
+  // remove password before returning response
+  delete user.password;
+
+  return { user, token };
+};
+
+export const verifyOTP =async (userId, otp) => {
+  const data = await otpRepository.findOTPByUserId(userId);
+
+  if(!data) {
+    throw new BadRequestError("OTP not found, please request a new one");
+  }
+
+  if(data.expired_at < new Date()) {
+    throw new BadRequestError("OTP has expired, please request a new one");
+  }
+
+    const otpHash = hashOTP(otp);
+
+
+    if(otpHash !== data.verification_code) {
+      throw new BadRequestError("Invalid OTP");
     }
 
-    // create user
-    const user = await userRepository.createUser(data)
+    const activateUserById = await userRepository.activateUser(userId);
+    const updateVerfiedAt = await otpRepository.markOTPVerified(userId);
 
-    // generate token
-    const payload = {
-        user_id: user.id
-    };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {expiresIn:"72h"}) // expires in 72 jam / 3hari
-    
-    // dont forget to remove the password object, if not remove it will be displayed in response
-    delete user.password;
-
-    // return the user info and token
-    return{
-        user,
-        token,
-    }
-}
-
-exports.login = async(email, password) => {
-    // Get User By Email
-    const user = await userRepository.getUserByEmail(email);
-    if(!user){
-        throw new Unauthorized("Email is Not Found !!!");
-    }
-
-    // Check password 
-    const isCorrectPassword = await bcrypt.compare(password, user.password);
-    if(!isCorrectPassword){
-        throw new BadRequestError("Incorrect Password");
-    }
-
-    // generate Token
-    const token = crateToken(user);
-
-    // don't forget to remove the password object, if not removed it will be displayed in response
-    delete user.password;
-    
-    return{
-        user,
-        token,
-    };
-}
-
-exports.googleLogin = async (accessToken) => {
-    // get information of access token by google api
-    const {email, name, picture} = await userRepository.googleLogin(accessToken);
-
-    // check is user already have an account
-    let user = await userRepository.getUserByEmail(email);
-    if(!user){
-        //register the User
-        user = await userRepository.createUser({
-            email,
-            name,
-            profile_picture: picture,
-            password: "",
-        })
-    }
-    // create token
-    const token = createToken(user)
-
-    // delete the password, so the password not be displayed
-    delete user.password;
-
-    return{user,token};
+    return {message: "OTP verified successfully", activateUserById, updateVerfiedAt};
 }
 
 const createToken = (user) => {
-    /// generate token with JWT
-    const payload = {
-        user_id: user.id,
-    };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {expiresIn: "72h"}); // expired in 3 days
-    return token;
+  const payload = {
+    user_id: user.id,
+  };
+
+  return jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: "72h",
+  });
 };
+
+export const resendOTP =async (userId) => {
+  const user = await userRepository.getUserById(userId);
+  if(!user) {
+    throw new BadRequestError("User not found");
+  };
+
+  if(user.is_active) {
+    throw new BadRequestError("User is already verified");
+  };
+
+  const otp = generateOTP();
+  const otpHash = hashOTP(otp);
+  const expiredAt = otpExpiry(5);
+
+  const createNewOtp = await otpRepository.upsertOTP(userId, otpHash, expiredAt);
+  await sendOtpEmail(user.email,otp);
+
+  return {message: "OTP resent successfully", createNewOtp}
+}

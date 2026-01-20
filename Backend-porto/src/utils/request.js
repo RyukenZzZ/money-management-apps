@@ -1,56 +1,39 @@
-class BadRequestError extends Error {
-    constructor(errors){
-        super("Validation Failed!");
-        this.errors = errors;
-        this.status = 400;
-    }
+export class BadRequestError extends Error {
+  constructor(errors = []) {
+    super("Validation Failed!");
+    this.status = 400;
+    this.errors = errors;
+  }
 }
 
-class NotFoundError extends Error {
-    constructor (message) {
-        if (message) {
-            super(message);
-        } else {
-            super("Data is Not Found!")
-        }
-        this.status = 404;
-    }
+export class NotFoundError extends Error {
+  constructor(message = "Data is Not Found!") {
+    super(message);
+    this.status = 404;
+    this.errors = [];
+  }
 }
 
-class InternalServerError extends Error {
-    constructor(errors) {
-        super ("Internal Server Error");
-        this.status = 500;
-        this.errors = errors;
-    }
+export class InternalServerError extends Error {
+  constructor(errors = []) {
+    super("Internal Server Error");
+    this.status = 500;
+    this.errors = errors;
+  }
 }
 
-class Unauthorized extends Error {
-    constructor(message){
-        if(message){
-            super(message);
-        } else {
-            super("Unathorized!")
-        }
-        this.status = 401;
-    }
+export class Unauthorized extends Error {
+  constructor(message = "Unauthorized!") {
+    super(message);
+    this.status = 401;
+    this.errors = [];
+  }
 }
 
-class Forbidden extends Error {
-    constructor(message) {
-        if(message){
-            super(message);
-        } else {
-            super("Forbbiden!")
-        }
-        this.status = 403;
-    }
-}
-
-module.exports = {
-    BadRequestError,
-    NotFoundError,
-    InternalServerError,
-    Unauthorized,
-    Forbidden,
+export class Forbidden extends Error {
+  constructor(message = "Forbidden!") {
+    super(message);
+    this.status = 403;
+    this.errors = [];
+  }
 }

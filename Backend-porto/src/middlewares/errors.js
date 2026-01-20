@@ -1,21 +1,24 @@
-const {NotFoundError} = require("../utils/request");
+import { NotFoundError } from "../utils/request.js";
 
-exports.errorHandler = (err, req, res, next) => {
-    console.error (err);
-    const status = err.status || 500;
-    const errors = err.status || [];
-    let message = err.message;
-    if(status == 500 ) {
-        message = "Internnal Server Error"
-    }
+export const errorHandler = (err, req, res, next) => {
+  console.error(err);
 
-    res.status(status).json({
-        success: false,
-        data: null,
-        message,
-        errors,
-    });
+  const status = err.status || 500;
+  const errors = err.errors || [];
+  let message = err.message;
+
+  if (status === 500) {
+    message = "Internal Server Error";
+  }
+
+  res.status(status).json({
+    success: false,
+    data: null,
+    message,
+    errors,
+  });
 };
-exports.notFoundURLHandler = (req,res,next) => {
-    throw new NotFoundError("URL is Not Found!");
-}
+
+export const notFoundURLHandler = (req, res, next) => {
+  throw new NotFoundError("URL is Not Found!");
+};
