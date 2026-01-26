@@ -61,12 +61,12 @@ export const validateRegister = (req, res, next) => {
 
   const resultValidateBody = validateBody.safeParse(req.body);
   if (!resultValidateBody.success) {
-    throw new BadRequestError(resultValidateBody.error.errors);
+    throw new BadRequestError(resultValidateBody.error.message);
   }
 
   const resultValidateFiles = validateFile.safeParse(req.files);
   if (!resultValidateFiles.success) {
-    throw new BadRequestError(resultValidateFiles.error.errors);
+    throw new BadRequestError(resultValidateFiles.error.message);
   }
 
   next();
@@ -81,7 +81,7 @@ export const validateLogin = (req, res, next) => {
 
   const resultValidateBody = validateBody.safeParse(req.body);
   if (!resultValidateBody.success) {
-    throw new BadRequestError(resultValidateBody.error.errors);
+    throw new BadRequestError(resultValidateBody.error.message);
   }
 
   next();
@@ -95,7 +95,7 @@ export const validateGoogleLogin = (req, res, next) => {
 
   const resultValidateBody = validateBody.safeParse(req.body);
   if (!resultValidateBody.success) {
-    throw new BadRequestError(resultValidateBody.error.errors);
+    throw new BadRequestError(resultValidateBody.error.message);
   }
 
   next();
