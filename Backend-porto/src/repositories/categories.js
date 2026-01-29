@@ -13,7 +13,7 @@ export const getCategories = async (name) => {
             ]
         },
         include: {
-            categories: {
+            other_categories: {
                 select: {
                     id: true,
                     name: true,
