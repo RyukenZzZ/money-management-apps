@@ -3,6 +3,7 @@ import authRouter from "./auth.js";
 import accountRouter from "./accounts.js";
 import categoryRouter from "./categories.js";
 import budgetRouter from "./budgets.js";
+import transactionRouter from "./transactions.js"
 
 const router = express.Router();
 
@@ -10,5 +11,6 @@ router.use("/auth", authRouter);
 router.use("/accounts", accountRouter);
 router.use("/categories", categoryRouter);
 router.use("/budgets", budgetRouter);
+router.use("/transactions", transactionRouter);
 
 export default router;
