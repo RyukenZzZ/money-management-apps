@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, Geist } from "next/font/google";
+import { TransactionModalProvider} from "@/context/transactionModalContext";
+import TransactionModal from "@/components/addTransactionModal";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -20,11 +25,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <body
         className={`${poppins.variable} antialiased`}
       >
-        {children}
+        <TransactionModalProvider>
+          {children}
+          <TransactionModal />
+        </TransactionModalProvider>
       </body>
     </html>
   );

@@ -1,57 +1,68 @@
 "use client";
 
-import { Home, Wallet, Plus, ReceiptText, User } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, Wallet, ReceiptText, User, Plus } from "lucide-react";
+import { useTransactionModal } from "@/context/transactionModalContext";
 
 export default function BottomNavbar() {
+  const pathname = usePathname();
+  const { openModal } = useTransactionModal();
+
+  const navItems = [
+    {
+      href: "/",
+      label: "Home",
+      icon: Home,
+    },
+    {
+      href: "/budgets",
+      label: "Budgets",
+      icon: Wallet,
+    },
+    {
+      href: "/transactions",
+      label: "Transactions",
+      icon: ReceiptText,
+    },
+    {
+      href: "/profile",
+      label: "Profile",
+      icon: User,
+    },
+  ];
+
   return (
-    <div className="fixed bottom-0 left-0 w-full flex justify-center">
-      <div className="relative w-full bg-white border-2 border-gray-200 max-w-sm h-20 rounded-t-3xl shadow-lg flex items-center justify-around text-gray-400">
-        {/** Home Section */}
-        <div className="flex flex-col items-center">
-          <Home size={24} />
-          <p className="text-xs">Home</p>
-        </div>
+    <div className="fixed bottom-0 left-0 w-full flex justify-center z-50">
+      <div className="relative w-full max-w-sm bg-white border-t border-gray-200 h-20 rounded-t-3xl shadow-lg flex items-center justify-between px-6">
 
-        {/** Budget Section */}
-        <div className="flex flex-col items-center">
-          <Wallet size={24} />
-          <p className="text-xs">Home</p>
-        </div>
+        {/* NAV ITEMS */}
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
 
-        {/** spacer Section */}
-        <div className="w-12"></div>
+          return (
+            <Link key={item.href} href={item.href}>
+              <div
+                className={`flex flex-col items-center transition ${
+                  isActive ? "text-cyan-500" : "text-gray-400"
+                }`}
+              >
+                <Icon size={24} />
+                <p className="text-xs">{item.label}</p>
+              </div>
+            </Link>
+          );
+        })}
 
-
-        {/** Tramsaction Section */}
-        <div className="flex flex-col items-center">
-          <ReceiptText size={24} />
-          <p className="text-xs">Home</p>
-        </div>
-
-        {/** Profile Section */}
-        <div className="flex flex-col items-center">
-          <User size={24} />
-          <p className="text-xs">Home</p>
-        </div>
-
-        {/* Floating Button */}
+        {/* FLOATING BUTTON */}
         <button
-          className="
-          absolute
-          -top-5
-          bg-cyan-500
-          w-16
-          h-16
-          rounded-full
-          flex
-          items-center
-          justify-center
-          text-white
-          shadow-lg
-        "
+          onClick={openModal}
+          className="absolute -top-6 left-1/2 -translate-x-1/2 bg-cyan-500 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg"
         >
-          <Plus size={32} />
+          <Plus size={28} />
         </button>
+
       </div>
     </div>
   );
